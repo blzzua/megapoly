@@ -1,3 +1,6 @@
+import logging
+
+
 class Bank:
     balance = 100_000
 
@@ -9,13 +12,18 @@ class Player:
         self.skip_turns = 0
         self.current_cell = current_cell
 
+
 class Cell:
     def __init__(self, name, type_, **kwargs):
         self.name = name
         self.type = type_  # TODO set on enum of cell type
         self.prev = None
         self.next = None
-    
+        if type_ == 'company':
+            self.owner = Bank
+            self.nominal_price = kwargs['price']
+            self.tax0 = 0
+
     def __str__(self):
         return f'Cell({self.name})'
 
@@ -61,13 +69,32 @@ class Game:
         self.board = Board()
 
     def make_turn(self):
-        points = self.roll_dice()
-        while points > 0:
-            points = points - 1
-            prev_cell = self.current_player.current_cell
-            self.current_player.current_cell = self.current_player.current_cell.next
-            print(f'Player go from {prev_cell} to {self.current_player.current_cell}')
-        
+
+        if self.current_player.skip_turns:
+            self.current_player.skip_turns = self.current_player.skip_turns - 1
+        else:
+            points = self.roll_dice()
+            logging.debug(f'rolled {points}')
+            while points > 0:
+                points = points - 1
+                prev_cell = self.current_player.current_cell
+                self.current_player.current_cell = self.current_player.current_cell.next
+                logging.debug(f'Player go from {prev_cell} to {self.current_player.current_cell}')
+
+    def buy_company(self, player: Player, company: Cell):
+        if company.type != 'company':
+            logging.error(f'Cannot buy {company.type} type cell.')
+            return False
+        if company.owner != Bank:
+            logging.error(f'Cannot buy {company.type} because owner of {company} is not a Bank .')
+            return False
+        if player.balance < company.nominal_price:
+            logging.error(f'Cannot buy {company.type} because no enough money.')
+            return False
+        company.owner = player
+        player.balance -= company.nominal_price
+        return True
+
     def roll_dice(self):
         return 4 #  chosen by fail dice roll. guaranteed to be random
 
@@ -75,4 +102,5 @@ class Game:
 if __name__ == '__main__':
     g = Game()
     g.make_turn()
+    g.buy_company(g.current_player, g.current_player.current_cell)
     #print(Board)
