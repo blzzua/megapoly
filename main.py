@@ -54,7 +54,6 @@ class Board:
         add.prev = after
         self.cells.append(add)
 
-
     def __str__(self):
         return f'Boardgame'
 
@@ -79,6 +78,10 @@ class Game:
                 points = points - 1
                 prev_cell = self.current_player.current_cell
                 self.current_player.current_cell = self.current_player.current_cell.next
+                if self.current_player.current_cell.type in ('start',):
+                    self.action_cell_start(player=current_player, cell=current_player.current_cell):
+                elif self.current_player.current_cell.type in ('taxes',):
+                    self.action_cell_taxes(player=current_player, cell=current_player.current_cell):
                 logging.debug(f'Player go from {prev_cell} to {self.current_player.current_cell}')
 
     def buy_company(self, player: Player, company: Cell):
@@ -92,11 +95,28 @@ class Game:
             logging.error(f'Cannot buy {company.type} because no enough money.')
             return False
         company.owner = player
+        player.owned_companies.append(company)
         player.balance -= company.nominal_price
         return True
 
     def roll_dice(self):
         return 4 #  chosen by fail dice roll. guaranteed to be random
+
+
+    #  cell actions
+    def action_cell_start(self, player: Player, cell: Cell):
+        player.balance += 500
+
+    def action_cell_taxes(self, player: Player, cell: Cell):
+        player.balance -= 300 * len(player.owned_companies)
+
+    def action_cell_company(self, player: Player, cell: Cell):
+        if cell.owner == Bank:
+            self.buy_company(player=player, company=cell)
+        elif cell.owner == player:
+            pass
+        elif cell.owner != player and (cell.owner != Bank):
+            print("check taxes range and pay taxes")
 
 
 if __name__ == '__main__':
